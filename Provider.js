@@ -1,72 +1,57 @@
-/**
- * 提取课程表
- *
- * @link https://github.com/moeshin/ai-schedule-chaoxing
- * @param iframeContent {string}
- * @param frameContent {string}
- * @param dom {Document}
- * @returns {string}
- */
 async function scheduleHtmlProvider(iframeContent = "", frameContent = "", dom = document) {
-  //登录页面的账号框
-  let element = document.querySelector('[name=username]');
-  const iframe = dom.querySelector('iframe[src$="/queryKbForXsd"]');
-  const path = '/admin/pkgl/xskb/queryKbForXsd';
-  if (location.pathname.replace(/\/+/g, '/')
-      .replace(/\/$/, '') === path) {
-      element = dom;
-  } else if (iframe) {
-      element = iframe.contentDocument;
-  } else {
-      await loadTool('AIScheduleTools');
-      const dom = await fetch(path)
-          .then(r => r.text())
-          .then(t => new DOMParser().parseFromString(t, 'text/html'));
-      const xhid = dom.querySelector('#xhid').value;
-      const xqdm = dom.querySelector('#xqdm').value;
-      const arr = [];
-      for (let option of dom.querySelectorAll('#xnxq1>option')) {
-          const value = option.value;
-          if (value) {
-              arr.push(value);
-          }
-      }
-      const xnxq = await AIScheduleSelect({
-          contentText: '学年学期',
-          selectList: arr,
-      });
-      return fetch('/admin/pkgl/xskb/sdpkkbList?' + new URLSearchParams({
-          xnxq,
-          xhid,
-          xqdm,
-      }))
-          .then(r => r.text())
-          .then(t => JSON.parse(t))
-          .then(data => data.map(info => {
-              const xq = info['xqmc'];
-              return {
-                  name: cleanTag(info['kcmc']) + getType(info['type']),
-                  teacher: cleanTag(info['tmc']),
-                  position: cleanTag(info['croommc']) + (xq ? `（${xq}）` : ''),
-                  sections: [info['djc']],
-                  weeks: info['zc'],
-                  day: info['xingqi'],
-              };
-          }))
-          .then(data => '<!-- JSON -->' + JSON.stringify(data));
-  }
-  return element.querySelector('table').outerHTML;
+    //登录时的用户名
+    let element = document.querySelector('name=username');
+    //具体课表位置
+    const path = '/admin/pkgl/xskb/queryKbForXsd';
+
+    //调用小爱课程表
+    await loadTool('AIScheduleTools');
+    // 使用 fetch API 获取 path 路径的内容，然后将返回转换为文本后再转换为 HTML 文档
+    const dom = await fetch(path).then(res => res.text()).then(text => new DOMParser().parseFromString(text, 'text/html'));
+    // 从转换后的 HTML 文档中获取 xhid 和 xqdm 的值,还有遍历 xnxq 的 option 放入 arr
+    const xhid = dom.querySelector('#xhid').value;
+    const xqdm = dom.querySelector('#xqdm').value;
+    const arr = [];
+    for (let option of dom.querySelectorAll('#xnxq1>option')) {
+        const value = option.value;
+        if (value) {
+            arr.push(value);
+        }
+    }
+    //显示选择列表
+    const xnxq = await AIScheduleSelect({
+        contentText: '请选择学年学期',
+        selectList: arr,
+    });
+
+
+    //清理标签与最终返回部分
+    //获取课表具体数据
+    return fetch('/admin/pkgl/xskb/sdpkkbList?' + new URLSearchParams({
+        xnxq,
+        xhid,
+        xqdm,
+    }))
+    //处理返回数据
+        .then(res => res.text())
+        .then(text => JSON.parse(text))
+        .then(data => data.map(info => {
+            return {
+                name: cleanTag(info.kcmc),          //课程名称
+                teacher: cleanTag(info.tmc),        //教师名称
+                position: cleanTag(info.croommc),   //上课地点
+                sections: info.djc,                 //节次
+                weeks: info.zcstr,                  //上课周数
+                day: info.xingqi,                   //星期
+            };
+        }))
+        //最终转换为JSON
+        .then(data => JSON.stringify(data));
+
 }
 
+
+//去除HTML标签
 function cleanTag(str) {
-  console.log(str)
-  return new DOMParser().parseFromString(str, 'text/html').body.textContent.trim();
-}
-
-const TYPES = ['其他', '理论', '实验', '上机', '实践', '环节']
-function getType(type) {
-  if (type >= TYPES.length) {
-      type = 0;
-  }
-  return `（${TYPES[type]}）`;
+    return new DOMParser().parseFromString(str, 'text/html').body.textContent.trim();
 }
