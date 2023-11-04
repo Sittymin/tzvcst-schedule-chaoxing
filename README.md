@@ -1,4 +1,4 @@
-#介绍
+# 介绍
 本项目是台州科技职业学院小爱课程表的导入代码。
 
 非小米用户应该也可以使用
@@ -7,5 +7,5 @@
 
 由于本人JS并**不熟悉**可能不怎么会维护，要是有会的校友请不要吝啬提交PR
 
-#Credit
+# Credit
 https://github.com/moeshin/ai-schedule-chaoxing
