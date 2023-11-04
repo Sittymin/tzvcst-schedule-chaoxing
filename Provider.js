@@ -8,13 +8,8 @@
  * @returns {string}
  */
 async function scheduleHtmlProvider(iframeContent = "", frameContent = "", dom = document) {
+  //登录页面的账号框
   let element = document.querySelector('[name=username]');
-  if (element) {
-      const value = element.value;
-      if (typeof value === 'string' && value.toUpperCase() === 'PASS') {
-          return '<!-- PASS -->';
-      }
-  }
   const iframe = dom.querySelector('iframe[src$="/queryKbForXsd"]');
   const path = '/admin/pkgl/xskb/queryKbForXsd';
   if (location.pathname.replace(/\/+/g, '/')
