@@ -8,6 +8,11 @@
 
 由于本人JS并**不熟悉**可能不怎么会维护，要是有会的校友请不要吝啬提交PR
 
+## TODO
+
+[?] 支持温岭校区
+[?] 支持冲突课表
+
 ## Doc
 
 [官方文档](https://open-schedule-prod.ai.xiaomi.com)
