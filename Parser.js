@@ -48,20 +48,59 @@ function mergeConflictingCourses(courses) {
     // 找出两个课程都有的周数和节次
     let commonWeeks = course1.weeks.filter(week => course2.weeks.includes(week));
     let commonSections = course1.sections.filter(section => course2.sections.includes(section));
+    let uncommonSections = course1.sections.filter(section => !course2.sections.includes(section));
 
     // 创建合并后的课程
-    let mergedCourse = {
+    let mergedCourse = [{
       name: `${course1.name}/${course2.name}`,
       position: course1.position && course2.position ? `${course1.position}/${course2.position}` : '',
       teacher: course1.teacher && course2.teacher ? `${course1.teacher}/${course2.teacher}` : '',
       weeks: commonWeeks,
       day: course1.day,
       sections: commonSections
-    };
+    }];
 
+    // 是否相等
+    function is_include(course1, course2) {
+      if (course1.sections === course2.sections) {
+        return true;
+      } else {
+        return false;
+      }
+    }
     // 更新原课程的周数，移除与合并课程重叠的部分
-    course1.weeks = course1.weeks.filter(week => !commonWeeks.includes(week));
-    course2.weeks = course2.weeks.filter(week => !commonWeeks.includes(week));
+    if(is_include(course1, course2)) {
+      course1.weeks = course1.weeks.filter(week => !commonWeeks.includes(week));
+      course2.weeks = course2.weeks.filter(week => !commonWeeks.includes(week));
+    } else {
+      // 如果同周不同节次，需要将不同的节次添加到原课程中
+      course1.weeks = course1.weeks.filter(week => !commonWeeks.includes(week));
+      course2.weeks = course2.weeks.filter(week => !commonWeeks.includes(week));
+      let course_inter_weeks1 = {
+        name: `${course1.name}`,
+        position: `${course1.position}`,
+        teacher: `${course1.teacher}`,
+        weeks: commonWeeks,
+        day: course1.day,
+        sections: uncommonSections.filter(section => course1.sections.includes(section))
+      }
+      let course_inter_weeks2 = {
+        name: `${course2.name}`,
+        position: `${course2.position}`,
+        teacher: `${course2.teacher}`,
+        weeks: commonWeeks,
+        day: course2.day,
+        sections: uncommonSections.filter(section => course2.sections.includes(section))
+      }
+      // 如果sections为空，不添加
+      if(course_inter_weeks1.sections.length > 0) {
+        mergedCourse.push(course_inter_weeks1);
+      }
+
+      if(course_inter_weeks2.sections.length > 0) {
+        mergedCourse.push(course_inter_weeks2);
+      }
+    }
 
     return mergedCourse;
   }
@@ -83,7 +122,7 @@ function mergeConflictingCourses(courses) {
       if (conflictCourse.weeks.length > 0) mergedCourses.push(conflictCourse);
 
       // 添加合并后的课程
-      mergedCourses.push(mergedCourse);
+      mergedCourses = mergedCourses.concat(mergedCourse);
 
       // 移除已处理的冲突课程
       toMerge.splice(conflictIndex, 1);
