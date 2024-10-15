@@ -1,6 +1,6 @@
 import { setMaxDigits, RSAKeyPair, encryptedString } from "./rsa.mjs";
 import * as readline from "node:readline/promises";
-import { stdin as input, stdout as output } from "node:process";
+import { stdin as input, stdout as output, exit } from "node:process";
 
 const authenticate = async () => {
   const init = (url) => {
@@ -72,10 +72,12 @@ const authenticate = async () => {
 
   if (authResult.result === "success") {
     console.log("登录成功");
+    exit(0);
     // 跳转到管理界面
     // window.location = `success.jsp?userIndex=${authResult.userIndex}&keepaliveInterval=${authResult.keepaliveInterval}`;
   } else {
     console.log(authResult.message);
+    exit(1);
   }
 };
 
