@@ -1,5 +1,4 @@
 function scheduleHtmlParser(html) {
-  // 假设 html 是一个 JSON 字符串，首先将其解析为对象
   let infos = JSON.parse(html);
   // 然后调用 format 函数来处理这些信息
   infos = format(infos);

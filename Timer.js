@@ -1,15 +1,13 @@
 // 获取信息查询URL
 async function getCourseInfoUrl() {
   let links = document.querySelectorAll(".radius a");
-  // 使用 for...of 循环遍历所有链接
   for (let link of links) {
+    // 检查标题是否为 '信息查询'
     if (link.title === "信息查询") {
-      // 检查标题是否为 '信息查询'
-      console.log("成功获取到信息查询URL: " + link.href);
+      // console.log("成功获取到信息查询URL: " + link.href);
       return link.href; // 返回符合条件的链接的完整 URL
     }
   }
-  // 如果没有找到符合条件的链接，执行以下代码
   await loadTool("AIScheduleTools");
   await AIScheduleAlert("时间相关URL获取失败，请联系维护同学修复");
   return null;
@@ -17,49 +15,62 @@ async function getCourseInfoUrl() {
 
 // 获取课表按照周数的日期
 async function fetchDateInfoForWeek(week) {
-  const data = { zc: week }; // 这里只需要设置周数
+  try {
+    const response = await fetch(
+      "https://tzvcst.jw.chaoxing.com/admin/getXqByZc",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+        },
+        body: new URLSearchParams({ zc: week }),
+        credentials: "include",
+      },
+    );
 
-  return fetch("https://tzvcst.jw.chaoxing.com/admin/getXqByZc", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
-    body: new URLSearchParams(data).toString(), // 将对象转换为查询字符串格式
-  })
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error("网络响应错误");
-      }
-      return response.json();
-    })
-    .then((jsonData) => {
-      console.log("获取到的一周日期:", jsonData.data);
-      return jsonData.data;
+    if (!response.ok) {
+      throw new Error(`网络错误 status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    // console.log(`获取到的第 ${week} 周日期:`, result.data);
+    return result.data;
+  } catch (error) {
+    // console.error("获取周数据失败:", error);
+    await AIScheduleAlert({
+      titleText: "错误",
+      contentText: String(error),
     });
+  }
 }
 
-// 寻找当前学年学期
+// 获取当前学年学期
 async function getCurrentSemester() {
   try {
-    const response = await fetch("/admin/xsd/xyjc/getXsjbxx?xhid=");
+    const response = await fetch("/admin/xsd/xyjc/getXsjbxx");
+
     if (!response.ok) {
-      throw new Error("网络请求失败");
+      throw new Error(`网络错误 status: ${response.status}`);
     }
+
     const result = await response.json();
     if (result.ret === 0 && result.data && result.data.dqxnxq) {
-      console.log("当前学年学期:", result.data.dqxnxq);
+      // console.log("当前学年学期:", result.data.dqxnxq);
       return result.data.dqxnxq;
     } else {
       throw new Error("获取学期信息失败: " + result.msg);
     }
   } catch (error) {
-    console.error("请求当前学期信息出错:", error);
-    return null;
+    // console.error("请求当前学期信息出错:", error);
+    await AIScheduleAlert({
+      titleText: "错误",
+      contentText: String(error),
+    });
   }
 }
 
 // 获取默认课表第一天转换为时间戳
-async function toTimestamp() {
+async function getFirstDayTimestamp() {
   const url = await getCourseInfoUrl();
   if (!url) {
     console.error("getCourseInfoUrl() 未成功获取到 URL");
@@ -97,12 +108,13 @@ function findMaxWeek(courses) {
 
 async function fetchCourseTimes() {
   try {
-    const url =
+    const response = await fetch(
       "https://tzvcst.jw.chaoxing.com/admin/system/zy/xlgl/selectJxzxsjXq/" +
-      (await getCurrentSemester());
-    const response = await fetch(url);
+        (await getCurrentSemester()),
+    );
+
     if (!response.ok) {
-      throw new Error("网络请求失败");
+      throw new Error(`网络错误 status: ${response.status}`);
     }
     const result = await response.json();
     if (result && result.list && result.list.length > 0) {
@@ -112,14 +124,17 @@ async function fetchCourseTimes() {
         endTime: item.jssj,
       }));
 
-      console.log("转换后的课程时间:", sections);
+      // console.log("转换后的课程时间:", sections);
       return sections;
     } else {
       throw new Error("获取数据失败或数据为空");
     }
   } catch (error) {
-    console.error("课程时间获取失败:", error);
-    return null;
+    // console.error("课程时间获取失败:", error);
+    await AIScheduleAlert({
+      titleText: "错误",
+      contentText: String(error),
+    });
   }
 }
 
@@ -142,18 +157,19 @@ function categorizeSections(sections) {
 }
 
 async function scheduleTimer({ parserRes } = {}) {
+  await loadTool("AIScheduleTools");
   const obj = {};
   if (parserRes) {
     obj.totalWeek = findMaxWeek(parserRes);
   }
 
   // 开学时间（时间戳）
-  const startSemester = await toTimestamp();
+  const startSemester = await getFirstDayTimestamp();
   if (startSemester === null) {
-    console.error("无法获取开学时间");
-    return null;
+    await AIScheduleAlert("无法获取开学时间，请联系维护同学修复");
+  } else {
+    obj.startSemester = startSemester.toString();
   }
-  obj.startSemester = startSemester.toString();
 
   // 从网页中获取课程时间
   const sections = await fetchCourseTimes();
@@ -166,7 +182,7 @@ async function scheduleTimer({ parserRes } = {}) {
     obj.afternoon = afternoon;
     obj.night = night;
   } else {
-    console.error("无法获取课程时间");
+    await AIScheduleAlert("无法获取课程时间，请联系维护同学修复");
   }
 
   return obj;
