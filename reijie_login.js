@@ -56,8 +56,12 @@ const authenticate = async () => {
     encodeURIComponent("nasip=7b3ad2fa097d34acd2131b2fd77ea6f0"),
   );
   // 好像是运营商账号密码，不过始终是空字符
-  const operatorPwd = "";
+  // 在管理界面中绑定的电信账号是15314736133@TZKJ.XY 密码是8b1d964853432329
+  // 移动账号是tzhyz67613972 密码是2172055796555d52
+  // const operatorUserId = "tzhyz67613972";
+  // const operatorPwd = "2172055796555d52";
   const operatorUserId = "";
+  const operatorPwd = "";
   // 不明所以的一个需要的参数
   const code = "";
   // 网页中是必然加密的, 实际上可以不加密登录
